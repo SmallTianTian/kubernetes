@@ -449,8 +449,8 @@ func (m *cgroupManagerImpl) toResources(resourceConfig *ResourceConfig) *libcont
 				Major:       libcontainerdevices.Wildcard,
 			},
 		},
-		SkipDevices:     true,
-		SkipFreezeOnSet: true,
+		SkipDevices: true,
+		// SkipFreezeOnSet: true,
 	}
 	if resourceConfig == nil {
 		return resources

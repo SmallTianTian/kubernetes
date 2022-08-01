@@ -1,3 +1,4 @@
+//go:build !dockerless
 // +build !dockerless
 
 /*
@@ -92,34 +93,34 @@ func (ds *dockerService) ImageStatus(_ context.Context, r *runtimeapi.ImageStatu
 	return &res, nil
 }
 
-// PullImage pulls an image with authentication config.
-func (ds *dockerService) PullImage(_ context.Context, r *runtimeapi.PullImageRequest) (*runtimeapi.PullImageResponse, error) {
-	image := r.GetImage()
-	auth := r.GetAuth()
-	authConfig := dockertypes.AuthConfig{}
+// // PullImage pulls an image with authentication config.
+// func (ds *dockerService) PullImage(_ context.Context, r *runtimeapi.PullImageRequest) (*runtimeapi.PullImageResponse, error) {
+// 	image := r.GetImage()
+// 	auth := r.GetAuth()
+// 	authConfig := dockertypes.AuthConfig{}
 
-	if auth != nil {
-		authConfig.Username = auth.Username
-		authConfig.Password = auth.Password
-		authConfig.ServerAddress = auth.ServerAddress
-		authConfig.IdentityToken = auth.IdentityToken
-		authConfig.RegistryToken = auth.RegistryToken
-	}
-	err := ds.client.PullImage(image.Image,
-		authConfig,
-		dockertypes.ImagePullOptions{},
-	)
-	if err != nil {
-		return nil, filterHTTPError(err, image.Image)
-	}
+// 	if auth != nil {
+// 		authConfig.Username = auth.Username
+// 		authConfig.Password = auth.Password
+// 		authConfig.ServerAddress = auth.ServerAddress
+// 		authConfig.IdentityToken = auth.IdentityToken
+// 		authConfig.RegistryToken = auth.RegistryToken
+// 	}
+// 	err := ds.client.PullImage(image.Image,
+// 		authConfig,
+// 		dockertypes.ImagePullOptions{},
+// 	)
+// 	if err != nil {
+// 		return nil, filterHTTPError(err, image.Image)
+// 	}
 
-	imageRef, err := getImageRef(ds.client, image.Image)
-	if err != nil {
-		return nil, err
-	}
+// 	imageRef, err := getImageRef(ds.client, image.Image)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return &runtimeapi.PullImageResponse{ImageRef: imageRef}, nil
-}
+// 	return &runtimeapi.PullImageResponse{ImageRef: imageRef}, nil
+// }
 
 // RemoveImage removes the image.
 func (ds *dockerService) RemoveImage(_ context.Context, r *runtimeapi.RemoveImageRequest) (*runtimeapi.RemoveImageResponse, error) {
