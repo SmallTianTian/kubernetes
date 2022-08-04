@@ -7,47 +7,70 @@ import (
 	"strings"
 
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	"k8s.io/klog/v2"
 
 	"github.com/containers/image/v5/copy"
+	"github.com/containers/image/v5/signature"
 	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports/alltransports"
-	"github.com/containers/podman/v3/pkg/rootless"
-	"github.com/containers/storage"
+	"github.com/containers/image/v5/types"
 )
 
 // PullImage pulls an image with authentication config.
-func (ds *dockerService) PullImage(_ context.Context, r *runtimeapi.PullImageRequest) (resp *runtimeapi.PullImageResponse, err error) {
+func (ds *dockerService) PullImage(ctx context.Context, r *runtimeapi.PullImageRequest) (resp *runtimeapi.PullImageResponse, err error) {
 	if r.Image == nil || r.Image.Image == "" {
 		return nil, fmt.Errorf("[PullImage] Empty image: %v", r)
 	}
 
-	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
-	if err != nil {
-		return nil, err
-	}
-	store, err := storage.GetStore(storeOpts)
-	if err != nil {
-		return nil, err
-	}
-
 	image := r.Image.Image
 
-	// if r.Auth != nil {
-	// 	username, password := r.Auth.Username, r.Auth.Password
-	// 	if r.Auth.Auth != "" {
-	// 		if username, password, err = decodeDockerAuth(r.Auth.Auth); err != nil {
-	// 			klog.V(4).Infof("Error decoding authentication for image %s: %v", image, err)
-	// 			return nil, err
-	// 		}
-	// 	}
-	// }
-	srcRef, err := alltransports.ParseImageName(image)
-	destRef, err := istorage.Transport.ParseStoreReference(store, image)
-
-	if _, err = copy.Image(nil, nil, destRef, srcRef, nil); err != nil {
+	var username, password string
+	if r.Auth != nil {
+		username, password = r.Auth.Username, r.Auth.Password
+		if r.Auth.Auth != "" {
+			if username, password, err = decodeDockerAuth(r.Auth.Auth); err != nil {
+				klog.V(4).Infof("Error decoding authentication for image %s: %v", image, err)
+				return nil, err
+			}
+		}
+	}
+	sysCtx := &types.SystemContext{
+		DockerAuthConfig: &types.DockerAuthConfig{
+			Username: username,
+			Password: password,
+		},
+	}
+	srcRef, perr := alltransports.ParseImageName(image)
+	if perr != nil {
+		if ds.DefaultTransport == "" {
+			return nil, perr
+		}
+		if srcRef, perr = alltransports.ParseImageName(ds.DefaultTransport + image); perr != nil {
+			return nil, perr
+		}
+	}
+	destRef, err := istorage.Transport.ParseStoreReference(ds.store, image)
+	if err != nil {
 		return nil, err
 	}
-	return nil, nil
+
+	policy, err := signature.DefaultPolicy(sysCtx)
+	if err != nil {
+		return nil, err
+	}
+	policyContext, err := signature.NewPolicyContext(policy)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err = copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
+		SourceCtx: sysCtx,
+	}); err != nil {
+		return nil, err
+	}
+	return &runtimeapi.PullImageResponse{
+		ImageRef: destRef.DockerReference().String(),
+	}, nil
 }
 
 func decodeDockerAuth(s string) (user, password string, _ error) {

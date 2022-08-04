@@ -25,43 +25,13 @@ import (
 	"net/http"
 
 	dockertypes "github.com/docker/docker/api/types"
-	dockerfilters "github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/pkg/jsonmessage"
 
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
 )
 
 // This file implements methods in ImageManagerService.
-
-// ListImages lists existing images.
-func (ds *dockerService) ListImages(_ context.Context, r *runtimeapi.ListImagesRequest) (*runtimeapi.ListImagesResponse, error) {
-	filter := r.GetFilter()
-	opts := dockertypes.ImageListOptions{}
-	if filter != nil {
-		if filter.GetImage().GetImage() != "" {
-			opts.Filters = dockerfilters.NewArgs()
-			opts.Filters.Add("reference", filter.GetImage().GetImage())
-		}
-	}
-
-	images, err := ds.client.ListImages(opts)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]*runtimeapi.Image, 0, len(images))
-	for _, i := range images {
-		apiImage, err := imageToRuntimeAPIImage(&i)
-		if err != nil {
-			klog.V(5).InfoS("Failed to convert docker API image to runtime API image", "image", i, "err", err)
-			continue
-		}
-		result = append(result, apiImage)
-	}
-	return &runtimeapi.ListImagesResponse{Images: result}, nil
-}
 
 // ImageStatus returns the status of the image, returns nil if the image doesn't present.
 func (ds *dockerService) ImageStatus(_ context.Context, r *runtimeapi.ImageStatusRequest) (*runtimeapi.ImageStatusResponse, error) {

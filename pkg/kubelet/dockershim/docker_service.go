@@ -1,3 +1,4 @@
+//go:build !dockerless
 // +build !dockerless
 
 /*
@@ -30,6 +31,8 @@ import (
 	"time"
 
 	"github.com/blang/semver"
+	"github.com/containers/podman/v3/pkg/rootless"
+	"github.com/containers/storage"
 	dockertypes "github.com/docker/docker/api/types"
 	"k8s.io/klog/v2"
 
@@ -289,6 +292,18 @@ func NewDockerService(config *ClientConfig, podSandboxImage string, streamingCon
 	// Register prometheus metrics.
 	metrics.Register()
 
+	// 下面由我添加
+	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
+	if err != nil {
+		return nil, err
+	}
+	store, err := storage.GetStore(storeOpts)
+	if err != nil {
+		return nil, err
+	}
+	ds.store = store
+	ds.DefaultTransport = "docker://"
+
 	return ds, nil
 }
 
@@ -323,6 +338,10 @@ type dockerService struct {
 	// methods for more info).
 	containerCleanupInfos map[string]*containerCleanupInfo
 	cleanupInfosLock      sync.RWMutex
+
+	// 由我添加
+	store            storage.Store
+	DefaultTransport string
 }
 
 // TODO: handle context.
