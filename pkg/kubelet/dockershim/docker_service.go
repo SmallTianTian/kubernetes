@@ -216,10 +216,11 @@ func NewDockerService(config *ClientConfig, podSandboxImage string, streamingCon
 			client:      client,
 			execHandler: &NativeExecHandler{},
 		},
-		containerManager:      cm.NewContainerManager(cgroupsName, client),
-		checkpointManager:     checkpointManager,
-		networkReady:          make(map[string]bool),
-		containerCleanupInfos: make(map[string]*containerCleanupInfo),
+		containerManager:         cm.NewContainerManager(cgroupsName, client),
+		checkpointManager:        checkpointManager,
+		networkReady:             make(map[string]bool),
+		containerCleanupInfos:    make(map[string]*containerCleanupInfo),
+		pullOperationsInProgress: make(map[pullArguments]*pullOperation),
 	}
 
 	// check docker version compatibility.
@@ -340,8 +341,13 @@ type dockerService struct {
 	cleanupInfosLock      sync.RWMutex
 
 	// 由我添加
-	store            storage.Store
-	DefaultTransport string
+	store                    storage.Store
+	DefaultTransport         string
+	pullOperationsLock       sync.Mutex
+	pullOperationsInProgress map[pullArguments]*pullOperation
+	separatePullCgroup       string // 专门拉取镜像的 cgroup，如果是 `pod`，将使用拉取请求中 sandbox 传递的 linux cgroup
+	imageCacheLock           sync.Mutex
+	imageCache               map[string]imageCacheItem
 }
 
 // TODO: handle context.

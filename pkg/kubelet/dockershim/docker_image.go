@@ -33,65 +33,6 @@ import (
 
 // This file implements methods in ImageManagerService.
 
-// ImageStatus returns the status of the image, returns nil if the image doesn't present.
-func (ds *dockerService) ImageStatus(_ context.Context, r *runtimeapi.ImageStatusRequest) (*runtimeapi.ImageStatusResponse, error) {
-	image := r.GetImage()
-
-	imageInspect, err := ds.client.InspectImageByRef(image.Image)
-	if err != nil {
-		if !libdocker.IsImageNotFoundError(err) {
-			return nil, err
-		}
-		imageInspect, err = ds.client.InspectImageByID(image.Image)
-		if err != nil {
-			if libdocker.IsImageNotFoundError(err) {
-				return &runtimeapi.ImageStatusResponse{}, nil
-			}
-			return nil, err
-		}
-	}
-
-	imageStatus, err := imageInspectToRuntimeAPIImage(imageInspect)
-	if err != nil {
-		return nil, err
-	}
-
-	res := runtimeapi.ImageStatusResponse{Image: imageStatus}
-	if r.GetVerbose() {
-		res.Info = imageInspect.Config.Labels
-	}
-	return &res, nil
-}
-
-// // PullImage pulls an image with authentication config.
-// func (ds *dockerService) PullImage(_ context.Context, r *runtimeapi.PullImageRequest) (*runtimeapi.PullImageResponse, error) {
-// 	image := r.GetImage()
-// 	auth := r.GetAuth()
-// 	authConfig := dockertypes.AuthConfig{}
-
-// 	if auth != nil {
-// 		authConfig.Username = auth.Username
-// 		authConfig.Password = auth.Password
-// 		authConfig.ServerAddress = auth.ServerAddress
-// 		authConfig.IdentityToken = auth.IdentityToken
-// 		authConfig.RegistryToken = auth.RegistryToken
-// 	}
-// 	err := ds.client.PullImage(image.Image,
-// 		authConfig,
-// 		dockertypes.ImagePullOptions{},
-// 	)
-// 	if err != nil {
-// 		return nil, filterHTTPError(err, image.Image)
-// 	}
-
-// 	imageRef, err := getImageRef(ds.client, image.Image)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return &runtimeapi.PullImageResponse{ImageRef: imageRef}, nil
-// }
-
 // RemoveImage removes the image.
 func (ds *dockerService) RemoveImage(_ context.Context, r *runtimeapi.RemoveImageRequest) (*runtimeapi.RemoveImageResponse, error) {
 	image := r.GetImage()

@@ -28,6 +28,7 @@ require (
 	github.com/container-storage-interface/spec v1.3.0
 	github.com/containernetworking/cni v0.8.1
 	github.com/containers/image/v5 v5.11.1
+	github.com/containers/ocicrypt v1.1.0
 	github.com/containers/podman/v3 v3.1.0
 	github.com/containers/storage v1.32.3
 	github.com/coredns/corefile-migration v1.0.11
@@ -74,6 +75,7 @@ require (
 	github.com/onsi/ginkgo v1.15.2
 	github.com/onsi/gomega v1.11.0
 	github.com/opencontainers/go-digest v1.0.0
+	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
 	github.com/opencontainers/runc v1.0.2
 	github.com/opencontainers/selinux v1.8.2
 	github.com/pkg/errors v0.9.1
